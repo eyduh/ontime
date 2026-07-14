@@ -102,7 +102,11 @@ in
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
-        RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
+        # Ontime calls os.networkInterfaces() at startup (getifaddrs), which
+        # opens an AF_NETLINK socket; the node/glibc resolver also needs
+        # AF_UNIX. Without these the socket() call is denied with EAFNOSUPPORT
+        # (libuv error 97) and the server aborts before it can listen.
+        RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" "AF_NETLINK" ];
         RestrictNamespaces = true;
         LockPersonality = true;
         MemoryDenyWriteExecute = false; # node JIT needs W^X off
