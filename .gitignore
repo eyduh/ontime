@@ -57,3 +57,6 @@ ontime-data/
 
 # Claude Code metadata
 .claude/
+
+# nix build symlink
+result
