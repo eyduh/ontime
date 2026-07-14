@@ -15,7 +15,7 @@
         default = ontime;
       });
 
-      nixosModules.default = import ./nix/module.nix self;
+      nixosModules.default = import ./nix/module.nix;
 
       checks = forAllSystems (pkgs: {
         build = self.packages.${pkgs.system}.ontime;

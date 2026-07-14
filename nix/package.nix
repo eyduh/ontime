@@ -57,6 +57,19 @@ stdenv.mkDerivation (finalAttrs: {
     # never ran. Generate it here before building.
     pnpm --filter ontime-ui --filter ontime-server run addversion
 
+    # NODE_ENV=docker is a build-time entrypoint selector, NOT a request to
+    # build a container. Upstream's esbuild.js keys off it: `docker` bundles
+    # the self-starting server (src/index.ts -> dist/docker.cjs), while the
+    # default bundles a library entry (src/app.ts) that only exports startup
+    # functions for the Electron app to drive. We want the self-starting
+    # server, hence `docker`. The runtime NODE_ENV is set separately (to
+    # `production` in the wrapper below); it is not baked into the bundle.
+    #
+    # TODO(upstream): if we upstream this Nix packaging, send a PR renaming the
+    # `docker` variant to something like `standalone`/`server` (esbuild.js,
+    # build:docker script, dist/docker.cjs) so the intent is clear, then update
+    # the NODE_ENV value and the docker.cjs paths here.
+    #
     # Use the nixpkgs turbo (on PATH) rather than the vendored binary.
     NODE_ENV=docker turbo run build --filter=ontime-server --filter=ontime-ui
 

@@ -1,4 +1,3 @@
-self:
 { config, lib, pkgs, ... }:
 
 let
@@ -10,8 +9,10 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = self.packages.${pkgs.system}.ontime;
-      defaultText = lib.literalExpression "ontime.packages.\${system}.ontime";
+      # Self-contained default so the module works both as a flake output and
+      # when imported directly (nix-build / configuration.nix imports).
+      default = pkgs.callPackage ./package.nix { };
+      defaultText = lib.literalExpression "pkgs.callPackage ./package.nix { }";
       description = "The Ontime package to run.";
     };
 
