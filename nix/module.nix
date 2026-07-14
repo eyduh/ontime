@@ -2,6 +2,7 @@
 
 let
   cfg = config.services.ontime;
+  oscPorts = [ 8888 9999 ];
 in
 {
   options.services.ontime = {
@@ -31,13 +32,35 @@ in
     openFirewall = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Open the HTTP port in the firewall.";
+      description = ''
+        Open the HTTP port on all interfaces. For finer control (e.g. only a
+        LAN interface, letting a reverse proxy handle the public side), leave
+        this off and use {option}`services.ontime.firewallInterfaces` instead.
+      '';
+    };
+
+    firewallInterfaces = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "eth0" "tailscale0" ];
+      description = ''
+        Interfaces on which to open the HTTP port. Note that loopback traffic
+        is never filtered, so a reverse proxy on the same host reaches the
+        server without opening any firewall port.
+      '';
     };
 
     openOscFirewall = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Open the OSC UDP ports (8888, 9999) in the firewall.";
+      description = "Open the OSC UDP ports (8888, 9999) on all interfaces.";
+    };
+
+    oscFirewallInterfaces = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "eth0" ];
+      description = "Interfaces on which to open the OSC UDP ports (8888, 9999).";
     };
 
     environment = lib.mkOption {
@@ -86,7 +109,13 @@ in
       };
     };
 
-    networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [ cfg.port ];
-    networking.firewall.allowedUDPPorts = lib.mkIf cfg.openOscFirewall [ 8888 9999 ];
+    networking.firewall = {
+      allowedTCPPorts = lib.mkIf cfg.openFirewall [ cfg.port ];
+      allowedUDPPorts = lib.mkIf cfg.openOscFirewall oscPorts;
+      interfaces = lib.mkMerge [
+        (lib.genAttrs cfg.firewallInterfaces (_: { allowedTCPPorts = [ cfg.port ]; }))
+        (lib.genAttrs cfg.oscFirewallInterfaces (_: { allowedUDPPorts = oscPorts; }))
+      ];
+    };
   };
 }
