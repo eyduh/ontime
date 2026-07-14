@@ -9,6 +9,13 @@ import { shouldCrashDev } from '../../utils/development.js';
 import { logger } from '../Logger.js';
 import { isAddressInfo, isPortInUseError } from './PortManager.utils.js';
 
+// Bind to the IPv6 wildcard so the server is reachable over IPv6 (e.g. mesh
+// networks, or a reverse proxy that can only reach it via IPv6) as well as
+// IPv4. On Linux `::` dual-stacks by default, so IPv4 clients (localhost, LAN)
+// still connect via IPv4-mapped addresses. Binding to '0.0.0.0' instead would
+// listen on IPv4 only.
+const bindHost = '::';
+
 class PortManager {
   private static port: number;
   private static pendingRestart = false;
@@ -94,7 +101,7 @@ class PortManager {
 
         // if we get an address in use error, we will try to open the server in an ephemeral port
         // port 0 will assign an ephemeral port
-        server.listen(0, '0.0.0.0', () => {
+        server.listen(0, bindHost, () => {
           const address = server.address();
           if (!isAddressInfo(address)) {
             reject(new Error('Unknown port type, unable to proceed'));
@@ -110,7 +117,7 @@ class PortManager {
         });
       });
 
-      server.listen(PortManager.port, '0.0.0.0', () => {
+      server.listen(PortManager.port, bindHost, () => {
         const address = server.address();
         if (!isAddressInfo(address)) {
           reject(new Error('Unknown port type, unable to proceed'));
@@ -126,7 +133,7 @@ class PortManager {
       server.once('error', (error) => {
         reject(error);
       });
-      server.listen(config.defaultServerPort, '0.0.0.0', () => {
+      server.listen(config.defaultServerPort, bindHost, () => {
         const address = server.address();
         if (!isAddressInfo(address)) {
           reject(new Error('Unknown port type, unable to proceed'));
